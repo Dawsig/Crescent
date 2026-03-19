@@ -8,76 +8,58 @@
 
 # FULL SET UP
 ```lua
-local Crescent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dawsig/Crescent/main/Lib.lua"))()
+local Crescent = require(script.Crescent)
 
 local Window = Crescent:CreateWindow({
-    Title = "Crescent UI",
-    LoadingTitle = "Crescent",
-    LoadingSubtitle = "Initializing interface...",
-    LoadingDuration = 2.5
+    Title = "Demo UI",
+    Subtitle = "Example",
+    LoadingTitle = "Demo",
+    LoadingSubtitle = "Starting...",
+    LoadingDuration = 2
 })
 
-local MainFolder = Window:AddFolder("Main")
-local CombatFolder = Window:AddFolder("Combat")
+local Main = Window:AddFolder("Main")
 
-MainFolder:AddToggle({
-    Text = "Auto Farm",
-    Default = false,
-    Flag = "autofarm",
-    Callback = function(state)
-        print("Auto Farm:", state)
+Main:AddLabel("Player")
+
+Main:AddToggle({
+    Text = "Infinite Jump",
+    Flag = "infjump",
+    Callback = function(v)
+        print("Infinite Jump:", v)
     end
 })
 
-MainFolder:AddButton({
-    Text = "Teleport",
-    Callback = function()
-        print("Teleporting")
-    end
-})
-
-MainFolder:AddLabel("Player Options")
-
-MainFolder:AddSlider({
+Main:AddSlider({
     Text = "WalkSpeed",
     Min = 0,
     Max = 100,
     Default = 16,
-    Flag = "ws",
-    Callback = function(value)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+    Callback = function(v)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
     end
 })
 
-MainFolder:AddDropdown({
-    Text = "Select Weapon",
-    Options = {"Sword", "Gun", "Magic"},
-    Default = "Sword",
-    Flag = "weapon",
-    Callback = function(choice)
-        print("Selected:", choice)
+Main:AddDropdown({
+    Text = "Team",
+    Options = {"Red", "Blue", "Green"},
+    Callback = function(team)
+        print(team)
     end
 })
 
-MainFolder:AddColor({
-    Text = "ESP Color",
-    Default = Color3.fromRGB(255, 0, 0),
-    Flag = "esp_color",
-    Callback = function(color)
-        print(color)
-    end
-})
-
-MainFolder:AddKeybind({
-    Text = "Toggle UI",
-    Default = Enum.KeyCode.RightControl,
+Main:AddButton({
+    Text = "Reset Character",
     Callback = function()
-        Crescent:ToggleUI()
+        game.Players.LocalPlayer.Character:BreakJoints()
     end
+})
+
+Crescent:Notify({
+    Title = "Loaded",
+    Text = "UI initialized successfully"
 })
 ```
-
-
 # EXTRAS
 **CHANGING THEME**
 ```lua
