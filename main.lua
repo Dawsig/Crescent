@@ -3,7 +3,7 @@ local Crescent = {
         [3351674303] = {
             game = "Driving Empire",
             place = "Main",
-            url = "https://example.com/Sea1.lua"
+            url = "https://raw.githubusercontent.com/Dawsig/Crescent/refs/heads/main/Games/Driving%20Empire"
         },
     Universal = "nil"
 }
