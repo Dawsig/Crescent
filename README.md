@@ -1,4 +1,3 @@
 # Welcome To Crescent!
 
-Join our discord
-[Discord](https://discord.gg/FPBCqSwEbH)
+Join our [discord](https://discord.gg/FPBCqSwEbH)
