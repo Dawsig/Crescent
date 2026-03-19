@@ -138,6 +138,30 @@ local function closeActiveDropdown()
     end
 end
 
+local function safePress(guiObject, callback)
+    local pressed = false
+    local startPos
+
+    guiObject.InputBegan:Connect(function(input)
+        if not isPointer(input) then
+            return
+        end
+        pressed = true
+        startPos = input.Position
+    end)
+
+    guiObject.InputEnded:Connect(function(input)
+        if not pressed or not isPointer(input) then
+            return
+        end
+        pressed = false
+        local delta = Vector2.new(input.Position.X - startPos.X, input.Position.Y - startPos.Y)
+        if delta.Magnitude <= 10 then
+            callback()
+        end
+    end)
+end
+
 function Crescent:Create(className, properties)
     return create(className, properties)
 end
@@ -262,7 +286,8 @@ end
 local function createWindowContainer(window, parent)
     local main = create("Frame", {
         Name = window.Title,
-        Position = UDim2.new(0, 20 + ((window.Position - 1) * (window.Width + 16)), 0, 20),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0.5, ((window.Position - 1) * (window.Width + 18)), 0.5, 0),
         Size = UDim2.new(0, window.Width, 0, 52),
         BackgroundColor3 = Crescent.Theme.Background,
         BorderSizePixel = 0,
@@ -433,11 +458,11 @@ local function createWindowContainer(window, parent)
         }):Play()
     end
 
-    collapseButton.Activated:Connect(function()
+    safePress(collapseButton, function()
         setCollapsed(not state.Collapsed)
     end)
 
-    closeButton.Activated:Connect(function()
+    safePress(closeButton, function()
         state.Open = false
         main.Visible = false
     end)
@@ -537,7 +562,7 @@ local function createFolder(option, window)
 
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refresh)
 
-    header.Activated:Connect(function()
+    safePress(header, function()
         open = not open
         content.Visible = open
         tween(arrow, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rotation = open and 270 or 90}):Play()
@@ -701,7 +726,7 @@ local function createButton(option, window)
     addCorner(button, UDim.new(0, 10))
     addStroke(button, Color3.fromRGB(255, 255, 255), 0.93, 1)
 
-    button.Activated:Connect(function()
+    safePress(button, function()
         option.Callback()
     end)
 
@@ -771,7 +796,7 @@ local function createToggle(option, window)
         end
     end
 
-    row.Activated:Connect(function()
+    safePress(row, function()
         apply(not option.State, false)
     end)
 
@@ -887,7 +912,7 @@ local function createBind(option, window)
 
     local waiting = false
 
-    keyButton.Activated:Connect(function()
+    safePress(keyButton, function()
         waiting = true
         keyLabel.Text = "..."
         tween(keyButton, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Crescent.Theme.Accent}):Play()
@@ -1208,7 +1233,7 @@ local function createDropdown(option, window)
         }):Play()
     end
 
-    holder.Activated:Connect(function()
+    safePress(holder, function()
         if open then
             if Crescent.ActiveDropdown and Crescent.ActiveDropdown.Close then
                 Crescent.ActiveDropdown:Close()
@@ -1427,7 +1452,7 @@ local function createColorPicker(option, window)
         popup.Visible = false
     end
 
-    holder.Activated:Connect(function()
+    safePress(holder, function()
         if open then
             closePopup()
         else
@@ -1478,16 +1503,16 @@ local function createColorPicker(option, window)
         end
     end)
 
-    reset.Activated:Connect(function()
+    safePress(reset, function()
         setColor(originalColor, false)
     end)
 
-    confirm.Activated:Connect(function()
+    safePress(confirm, function()
         originalColor = currentColor
         setColor(currentColor, false)
     end)
 
-    rainbow.Activated:Connect(function()
+    safePress(rainbow, function()
         rainbowEnabled = not rainbowEnabled
         if rainbowEnabled then
             task.spawn(function()
@@ -1512,6 +1537,115 @@ local function createColorPicker(option, window)
     end
     refresh(option.Color)
     return option
+end
+
+local function renderOption(option, window, parentOverride)
+    option.ParentOverride = parentOverride or option.ParentOverride
+    if option.Type == "label" then
+        return createLabel(option, window)
+    elseif option.Type == "separator" then
+        return createSeparator(option, window)
+    elseif option.Type == "paragraph" then
+        return createParagraph(option, window)
+    elseif option.Type == "toggle" then
+        return createToggle(option, window)
+    elseif option.Type == "button" then
+        return createButton(option, window)
+    elseif option.Type == "textbox" then
+        return createTextbox(option, window)
+    elseif option.Type == "bind" then
+        return createBind(option, window)
+    elseif option.Type == "slider" then
+        return createSlider(option, window)
+    elseif option.Type == "dropdown" then
+        return createDropdown(option, window)
+    elseif option.Type == "color" then
+        return createColorPicker(option, window)
+    elseif option.Type == "folder" then
+        return createFolder(option, window)
+    end
+end
+
+function Crescent:Notify(config)
+    config = typeof(config) == "table" and config or {Text = tostring(config or "Notification")}
+    local gui = self._gui
+    if not gui then
+        self:Init()
+        gui = self._gui
+    end
+
+    local host = self._notifyHost
+    if not host then
+        host = create("Frame", {
+            BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 1),
+            Parent = gui
+        })
+        self._notifyHost = host
+    end
+
+    local toast = create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 1),
+        Position = UDim2.new(0.5, 0, 1, -24),
+        Size = UDim2.new(0, 320, 0, 54),
+        BackgroundColor3 = Crescent.Theme.Panel,
+        BorderSizePixel = 0,
+        Parent = host
+    })
+    addCorner(toast, UDim.new(0, 12))
+    addStroke(toast, Color3.fromRGB(255, 255, 255), 0.92, 1)
+
+    local title = create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 14, 0, 8),
+        Size = UDim2.new(1, -28, 0, 18),
+        Font = Enum.Font.GothamBold,
+        Text = tostring(config.Title or "Crescent"),
+        TextSize = 15,
+        TextColor3 = Crescent.Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = toast
+    })
+
+    local body = create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 14, 0, 24),
+        Size = UDim2.new(1, -28, 0, 20),
+        Font = Enum.Font.Gotham,
+        Text = tostring(config.Text or config.Body or config.Message or "Done"),
+        TextSize = 13,
+        TextColor3 = Crescent.Theme.Muted,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = toast
+    })
+
+    local bar = create("Frame", {
+        Position = UDim2.new(0, 0, 1, -3),
+        Size = UDim2.new(1, 0, 0, 3),
+        BackgroundColor3 = Crescent.Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = toast
+    })
+
+    toast.BackgroundTransparency = 1
+    title.TextTransparency = 1
+    body.TextTransparency = 1
+    bar.BackgroundTransparency = 1
+
+    local duration = tonumber(config.Duration or 2) or 2
+    task.spawn(function()
+        TweenService:Create(toast, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+        TweenService:Create(title, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+        TweenService:Create(body, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+        TweenService:Create(bar, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+        task.wait(duration)
+        TweenService:Create(toast, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(title, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
+        TweenService:Create(body, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
+        TweenService:Create(bar, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+        task.wait(0.2)
+        toast:Destroy()
+    end)
 end
 
 function Crescent:CreateWindow(config)
@@ -1688,29 +1822,7 @@ function Crescent:CreateWindow(config)
         self.Initialized = true
 
         for _, option in ipairs(self.Options) do
-            if option.Type == "label" then
-                createLabel(option, state)
-            elseif option.Type == "separator" then
-                createSeparator(option, state)
-            elseif option.Type == "paragraph" then
-                createParagraph(option, state)
-            elseif option.Type == "toggle" then
-                createToggle(option, state)
-            elseif option.Type == "button" then
-                createButton(option, state)
-            elseif option.Type == "textbox" then
-                createTextbox(option, state)
-            elseif option.Type == "bind" then
-                createBind(option, state)
-            elseif option.Type == "slider" then
-                createSlider(option, state)
-            elseif option.Type == "dropdown" then
-                createDropdown(option, state)
-            elseif option.Type == "color" then
-                createColorPicker(option, state)
-            elseif option.Type == "folder" then
-                createFolder(option, state)
-            end
+            renderOption(option, state)
         end
 
         state:Refresh()
@@ -1722,6 +1834,15 @@ function Crescent:CreateWindow(config)
     function window:OpenWindow() self.Open = true; if self.State and self.State.Main then self.State.Main.Visible = true end end
 
     table.insert(self.Windows, window)
+
+    if config.AutoInit ~= false then
+        task.defer(function()
+            if not window.Initialized then
+                window:Init()
+            end
+        end)
+    end
+
     return window
 end
 
@@ -1777,5 +1898,7 @@ function Crescent:Close()
         end
     end
 end
+
+pcall(function() Crescent:Init() end)
 
 return Crescent
