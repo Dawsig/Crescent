@@ -8,7 +8,7 @@
 
 # FULL SET UP
 ```lua
-local Crescent = require(script.Crescent)
+local Crescent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dawsig/Crescent/refs/heads/main/Lib.lua"))()
 
 local Window = Crescent:CreateWindow({
     Title = "Demo UI",
