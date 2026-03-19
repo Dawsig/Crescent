@@ -1,4 +1,4 @@
-local Crescent = loadstring(game:HttpGet("https://yourdomain.com/CrescentModule.lua"))()
+local Crescent = loadstring(game:HttpGet("https://raw.githubusercontent.com/Dawsig/Crescent/refs/heads/main/main.lua"))()
 
 local placeData = Crescent.Places[game.PlaceId]
 
